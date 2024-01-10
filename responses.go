@@ -28,24 +28,14 @@ func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	w.Write(resp)
 }
 
-func RespondChirpBody(w http.ResponseWriter, msg string) {
-	type ChirpBody struct {
-		Body string `json:"body"`
-	}
-
-	error := ChirpBody{
-		Body: msg,
-	}
-
-	resp, err := json.Marshal(error)
+func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	resp, err := json.Marshal(payload)
 	if err != nil {
 		w.WriteHeader(500)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(code)
 	w.Write(resp)
-	log.Printf("Chirp validated: %s", msg)
-
 }
