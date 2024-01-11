@@ -2,6 +2,7 @@ package main
 
 import (
 	"Chirpy/database"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -18,13 +19,16 @@ func main() {
 	const filepathRoot = "."
 	const port = "8080"
 
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatal("Could not get current directory")
 		return
 	}
 
-	db, err := database.NewDB(cwd, true)
+	db, err := database.NewDB(cwd, *dbg)
 	if err != nil {
 		log.Fatal("Could not open database connection")
 		return
