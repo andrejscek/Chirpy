@@ -14,8 +14,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps  map[int]Chirp    `json:"chirps"`
+	Users   map[int]User     `json:"users"`
+	Revoked map[string]Token `json:"revoked_tokens"`
 }
 
 func NewDB(path string, debug bool) (*DB, error) {
@@ -43,8 +44,9 @@ func (db *DB) ensureDB() error {
 	_, err := os.ReadFile(db.path)
 	if errors.Is(err, os.ErrNotExist) {
 		dbs := DBStructure{
-			Chirps: make(map[int]Chirp),
-			Users:  make(map[int]User),
+			Chirps:  make(map[int]Chirp),
+			Users:   make(map[int]User),
+			Revoked: make(map[string]Token),
 		}
 
 		data, err := json.Marshal(dbs)

@@ -60,6 +60,8 @@ func main() {
 	api.Post("/users", cfg.createUser)
 	api.Post("/login", cfg.loginUser)
 	api.Put("/users", cfg.updateUser)
+	api.Post("/refresh", cfg.refreshAccess)
+	api.Post("/revoke", cfg.revokeRefresh)
 
 	r.Mount("/api", api)
 

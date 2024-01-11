@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Chirpy/database"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -57,9 +58,10 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type UserResponse struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
-		Token string `json:"token"`
+		ID      int    `json:"id"`
+		Email   string `json:"email"`
+		Token   string `json:"token"`
+		Refresh string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -96,7 +98,20 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RespondWithJSON(w, 200, UserResponse{ID: user.ID, Email: user.Email, Token: token})
+		refresh_claims := jwt.RegisteredClaims{
+			Issuer:    "chirpy-refresh",
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(24*60) * time.Hour)),
+			Subject:   fmt.Sprintf("%d", user.ID),
+		}
+
+		refresh, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refresh_claims).SignedString([]byte(cfg.jwtSecret))
+		if err != nil {
+			RespondWithError(w, 400, "Something went wrong")
+			return
+		}
+
+		RespondWithJSON(w, 200, UserResponse{ID: user.ID, Email: user.Email, Token: token, Refresh: refresh})
 	} else {
 		RespondWithError(w, 400, "Missing Email or Password")
 	}
@@ -162,4 +177,95 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		RespondWithError(w, 400, "Something went wrong")
 	}
+}
+
+func (cfg *apiConfig) refreshAccess(w http.ResponseWriter, r *http.Request) {
+	type TokenResponse struct {
+		Token string `json:"token"`
+	}
+
+	headers := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(headers) < 2 {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	token_string := headers[1]
+
+	claims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(token_string, &claims, func(token *jwt.Token) (interface{}, error) { return []byte(cfg.jwtSecret), nil })
+	if err != nil {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	if !token.Valid || claims.ExpiresAt.Time.Before(time.Now()) || claims.Issuer != "chirpy-refresh" {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	revoked, err := cfg.db.CheckRevoked(token_string)
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+	if revoked != (database.Token{}) {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	access_claims := jwt.RegisteredClaims{
+		Issuer:    "chirpy-access",
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(1) * time.Hour)),
+		Subject:   claims.Subject,
+	}
+
+	access, err := jwt.NewWithClaims(jwt.SigningMethodHS256, access_claims).SignedString([]byte(cfg.jwtSecret))
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	RespondWithJSON(w, 200, TokenResponse{Token: access})
+}
+
+func (c *apiConfig) revokeRefresh(w http.ResponseWriter, r *http.Request) {
+	type RevokedResponse struct {
+		Revoked    string    `json:"revoked_token"`
+		RevokeTime time.Time `json:"revoked_at"`
+	}
+
+	headers := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(headers) < 2 {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	token_string := headers[1]
+
+	claims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(token_string, &claims, func(token *jwt.Token) (interface{}, error) { return []byte(c.jwtSecret), nil })
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	if !token.Valid || claims.ExpiresAt.Time.Before(time.Now()) || claims.Issuer != "chirpy-refresh" {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	revoked, err := c.db.RevokeToken(token_string)
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	if revoked == (database.Token{}) {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	RespondWithJSON(w, 200, RevokedResponse{Revoked: revoked.ID, RevokeTime: revoked.RevokeTime})
 }
