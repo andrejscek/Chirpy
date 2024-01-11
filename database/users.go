@@ -1,6 +1,9 @@
 package database
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 type User struct {
 	ID       int    `json:"id"`
@@ -56,4 +59,30 @@ func (db *DB) GetUser(email string) (User, error) {
 	}
 
 	return User{}, err
+}
+
+func (db *DB) UpdateUser(id int, email string, pwd []byte) (User, error) {
+	dbs, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	for i, u := range dbs.Users {
+		if u.ID == id {
+			dbs.Users[i] = User{
+				ID:       id,
+				Email:    email,
+				Password: pwd,
+			}
+
+			err = db.writeDB(dbs)
+			if err != nil {
+				return User{}, err
+			}
+
+			return dbs.Users[i], nil
+		}
+	}
+
+	return User{}, fmt.Errorf("User id not found")
 }

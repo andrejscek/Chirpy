@@ -8,11 +8,13 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
+	jwtSecret      string
 }
 
 func main() {
@@ -21,6 +23,8 @@ func main() {
 
 	dbg := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
+	godotenv.Load()
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -37,6 +41,7 @@ func main() {
 	cfg := apiConfig{
 		fileserverHits: 0,
 		db:             db,
+		jwtSecret:      jwtSecret,
 	}
 
 	fs := http.FileServer(http.Dir(filepathRoot))
@@ -54,6 +59,7 @@ func main() {
 	api.Get("/chirps/{id}", cfg.getChirp)
 	api.Post("/users", cfg.createUser)
 	api.Post("/login", cfg.loginUser)
+	api.Put("/users", cfg.updateUser)
 
 	r.Mount("/api", api)
 
