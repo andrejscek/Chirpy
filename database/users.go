@@ -1,14 +1,16 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 )
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password []byte `json:"password"`
+	ID          int    `json:"id"`
+	Email       string `json:"email"`
+	Password    []byte `json:"password"`
+	IsChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 func (db *DB) CreateUser(email string, pwd []byte) (User, error) {
@@ -31,9 +33,10 @@ func (db *DB) CreateUser(email string, pwd []byte) (User, error) {
 	}
 
 	user := User{
-		ID:       id,
-		Email:    email,
-		Password: pwd,
+		ID:          id,
+		Email:       email,
+		Password:    pwd,
+		IsChirpyRed: false,
 	}
 
 	dbs.Users[id] = user
@@ -70,9 +73,10 @@ func (db *DB) UpdateUser(id int, email string, pwd []byte) (User, error) {
 	for i, u := range dbs.Users {
 		if u.ID == id {
 			dbs.Users[i] = User{
-				ID:       id,
-				Email:    email,
-				Password: pwd,
+				ID:          id,
+				Email:       email,
+				Password:    pwd,
+				IsChirpyRed: u.IsChirpyRed,
 			}
 
 			err = db.writeDB(dbs)
@@ -85,4 +89,31 @@ func (db *DB) UpdateUser(id int, email string, pwd []byte) (User, error) {
 	}
 
 	return User{}, fmt.Errorf("User id not found")
+}
+
+func (db *DB) UpgradeUser(id int) error {
+	dbs, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	for i, u := range dbs.Users {
+		if u.ID == id {
+			dbs.Users[i] = User{
+				ID:          u.ID,
+				Email:       u.Email,
+				Password:    u.Password,
+				IsChirpyRed: true,
+			}
+
+			err = db.writeDB(dbs)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("user id not found")
 }

@@ -64,6 +64,8 @@ func main() {
 	api.Post("/refresh", cfg.refreshAccess)
 	api.Post("/revoke", cfg.revokeRefresh)
 
+	api.Post("/polka/webhooks", cfg.poklaWebhook)
+
 	r.Mount("/api", api)
 
 	admin := chi.NewRouter()

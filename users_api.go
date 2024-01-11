@@ -20,8 +20,9 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type UserResponse struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
+		ID          int    `json:"id"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -44,7 +45,7 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RespondWithJSON(w, 201, UserResponse{ID: resp.ID, Email: resp.Email})
+		RespondWithJSON(w, 201, UserResponse{ID: resp.ID, Email: resp.Email, IsChirpyRed: resp.IsChirpyRed})
 	} else {
 		RespondWithError(w, 400, "Missing Email or Password")
 	}
@@ -58,10 +59,11 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type UserResponse struct {
-		ID      int    `json:"id"`
-		Email   string `json:"email"`
-		Token   string `json:"token"`
-		Refresh string `json:"refresh_token"`
+		ID          int    `json:"id"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
+		Token       string `json:"token"`
+		Refresh     string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -73,13 +75,13 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (len(params.Email) > 0) && (len(params.Password) > 0) {
-		user, err := cfg.db.GetUser(params.Email)
+		resp, err := cfg.db.GetUser(params.Email)
 		if err != nil {
 			RespondWithError(w, 401, "User not found")
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword(user.Password, []byte(params.Password))
+		err = bcrypt.CompareHashAndPassword(resp.Password, []byte(params.Password))
 		if err != nil {
 			RespondWithError(w, 401, "Wrong password")
 			return
@@ -89,7 +91,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			Issuer:    "chirpy-access",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(1) * time.Hour)),
-			Subject:   fmt.Sprintf("%d", user.ID),
+			Subject:   fmt.Sprintf("%d", resp.ID),
 		}
 
 		token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, access_claims).SignedString([]byte(cfg.jwtSecret))
@@ -102,7 +104,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			Issuer:    "chirpy-refresh",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(24*60) * time.Hour)),
-			Subject:   fmt.Sprintf("%d", user.ID),
+			Subject:   fmt.Sprintf("%d", resp.ID),
 		}
 
 		refresh, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refresh_claims).SignedString([]byte(cfg.jwtSecret))
@@ -111,7 +113,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RespondWithJSON(w, 200, UserResponse{ID: user.ID, Email: user.Email, Token: token, Refresh: refresh})
+		RespondWithJSON(w, 200, UserResponse{ID: resp.ID, Email: resp.Email, IsChirpyRed: resp.IsChirpyRed, Token: token, Refresh: refresh})
 	} else {
 		RespondWithError(w, 400, "Missing Email or Password")
 	}
@@ -124,8 +126,9 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type UserResponse struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
+		ID          int    `json:"id"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -173,7 +176,7 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RespondWithJSON(w, 200, UserResponse{ID: resp.ID, Email: resp.Email})
+		RespondWithJSON(w, 200, UserResponse{ID: resp.ID, Email: resp.Email, IsChirpyRed: resp.IsChirpyRed})
 	} else {
 		RespondWithError(w, 400, "Something went wrong")
 	}
