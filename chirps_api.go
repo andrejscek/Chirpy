@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func replaceProfanity(msg string) string {
@@ -60,4 +63,19 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, 200, chirps)
+}
+
+func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondWithError(w, 400, "Invalid ID")
+	}
+
+	chirp, err := cfg.db.GetChirp(id)
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	RespondWithJSON(w, 200, chirp)
 }

@@ -47,6 +47,8 @@ func main() {
 	api.Get("/reset", cfg.handlerReset)
 	api.Get("/chirps", cfg.getChirps)
 	api.Post("/chirps", cfg.postChirp)
+	api.Get("/chirps/{id}", cfg.getChirp)
+
 	r.Mount("/api", api)
 
 	admin := chi.NewRouter()
