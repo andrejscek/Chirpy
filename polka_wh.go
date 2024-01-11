@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func (cfg *apiConfig) poklaWebhook(w http.ResponseWriter, r *http.Request) {
@@ -15,6 +16,12 @@ func (cfg *apiConfig) poklaWebhook(w http.ResponseWriter, r *http.Request) {
 
 	type ResponseBody struct {
 		Status string `json:"status"`
+	}
+
+	headers := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(headers) < 2 || headers[1] != cfg.polkaKey {
+		RespondWithError(w, 401, "Unauthorized")
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)

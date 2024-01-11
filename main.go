@@ -15,6 +15,7 @@ type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
 	jwtSecret      string
+	polkaKey       string
 }
 
 func main() {
@@ -25,6 +26,7 @@ func main() {
 	flag.Parse()
 	godotenv.Load()
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polka_key := os.Getenv("POLKA_API_KEY")
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -42,6 +44,7 @@ func main() {
 		fileserverHits: 0,
 		db:             db,
 		jwtSecret:      jwtSecret,
+		polkaKey:       polka_key,
 	}
 
 	fs := http.FileServer(http.Dir(filepathRoot))
