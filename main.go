@@ -53,6 +53,7 @@ func main() {
 	api.Post("/chirps", cfg.postChirp)
 	api.Get("/chirps/{id}", cfg.getChirp)
 	api.Post("/users", cfg.createUser)
+	api.Post("/login", cfg.loginUser)
 
 	r.Mount("/api", api)
 

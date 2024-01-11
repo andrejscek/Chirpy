@@ -2,7 +2,13 @@ package database
 
 import "sort"
 
-func (db *DB) CreateUser(email string) (User, error) {
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password []byte `json:"password"`
+}
+
+func (db *DB) CreateUser(email string, pwd []byte) (User, error) {
 	dbs, err := db.loadDB()
 	if err != nil {
 		return User{}, err
@@ -22,8 +28,9 @@ func (db *DB) CreateUser(email string) (User, error) {
 	}
 
 	user := User{
-		ID:    id,
-		Email: email,
+		ID:       id,
+		Email:    email,
+		Password: pwd,
 	}
 
 	dbs.Users[id] = user
@@ -34,4 +41,19 @@ func (db *DB) CreateUser(email string) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (db *DB) GetUser(email string) (User, error) {
+	dbs, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	for _, u := range dbs.Users {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+
+	return User{}, err
 }

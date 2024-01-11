@@ -8,16 +8,6 @@ import (
 	"sync"
 )
 
-type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
-}
-
-type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-}
-
 type DB struct {
 	path string
 	mux  *sync.Mutex

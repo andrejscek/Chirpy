@@ -2,6 +2,11 @@ package database
 
 import "sort"
 
+type Chirp struct {
+	ID   int    `json:"id"`
+	Body string `json:"body"`
+}
+
 func (db *DB) CreateChirp(body string) (Chirp, error) {
 	dbs, err := db.loadDB()
 	if err != nil {
