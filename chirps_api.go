@@ -107,3 +107,59 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, 200, chirp)
 }
+
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+	chirp_id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		RespondWithError(w, 404, "Invalid Chirp ID")
+		return
+	}
+
+	type ResponseBody struct {
+		Status string `json:"status"`
+	}
+
+	headers := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(headers) < 2 {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	token_string := headers[1]
+
+	claims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(token_string, &claims, func(token *jwt.Token) (interface{}, error) { return []byte(cfg.jwtSecret), nil })
+	if err != nil {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	if !token.Valid || claims.ExpiresAt.Time.Before(time.Now()) || claims.Issuer != "chirpy-access" {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
+	author_id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	err = cfg.db.DeleteChirp(author_id, chirp_id)
+	if err != nil {
+		if err.Error() == "forbidden" {
+			RespondWithError(w, 403, "Forbidden")
+			return
+		}
+
+		if err.Error() == "chirp not found" {
+			RespondWithError(w, 404, "Chirp not found")
+			return
+		}
+
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	RespondWithJSON(w, 200, ResponseBody{Status: "ok"})
+}

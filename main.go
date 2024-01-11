@@ -57,6 +57,7 @@ func main() {
 	api.Get("/chirps", cfg.getChirps)
 	api.Post("/chirps", cfg.postChirp)
 	api.Get("/chirps/{id}", cfg.getChirp)
+	api.Delete("/chirps/{id}", cfg.deleteChirp)
 	api.Post("/users", cfg.createUser)
 	api.Post("/login", cfg.loginUser)
 	api.Put("/users", cfg.updateUser)

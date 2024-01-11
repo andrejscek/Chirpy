@@ -1,6 +1,9 @@
 package database
 
-import "sort"
+import (
+	"errors"
+	"sort"
+)
 
 type Chirp struct {
 	ID       int    `json:"id"`
@@ -82,4 +85,24 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 
 		return chirps, nil
 	}
+}
+
+func (db *DB) DeleteChirp(author_id, chirp_id int) error {
+	dbs, err := db.loadDB()
+	if err != nil {
+		return errors.New("something went wrong")
+	}
+
+	for i, c := range dbs.Chirps {
+		if c.ID == chirp_id {
+			if c.AuthorID == author_id {
+				delete(dbs.Chirps, i)
+				return nil
+			} else {
+				return errors.New("forbidden")
+			}
+		}
+	}
+
+	return errors.New("chirp not found")
 }
