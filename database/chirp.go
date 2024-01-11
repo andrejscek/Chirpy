@@ -61,7 +61,7 @@ func (db *DB) GetChirp(id int) (Chirp, error) {
 	return Chirp{}, err
 }
 
-func (db *DB) GetChirps(author_id int) ([]Chirp, error) {
+func (db *DB) GetChirps(author_id int, sort_asc bool) ([]Chirp, error) {
 	dbs, err := db.loadDB()
 	if err != nil {
 		return nil, err
@@ -81,8 +81,13 @@ func (db *DB) GetChirps(author_id int) ([]Chirp, error) {
 	if len(keys) == 0 {
 		return []Chirp{}, nil
 	} else {
+		var sortFunc func(i, j int) bool
+		if sort_asc {
+			sortFunc = func(i, j int) bool { return dbs.Chirps[keys[i]].ID < dbs.Chirps[keys[j]].ID }
+		} else {
+			sortFunc = func(i, j int) bool { return dbs.Chirps[keys[i]].ID > dbs.Chirps[keys[j]].ID }
+		}
 
-		sortFunc := func(i, j int) bool { return dbs.Chirps[keys[i]].ID < dbs.Chirps[keys[j]].ID }
 		sort.Slice(keys, sortFunc)
 		chirps := make([]Chirp, len(keys))
 		for i := 0; i < len(keys); i++ {
@@ -91,6 +96,7 @@ func (db *DB) GetChirps(author_id int) ([]Chirp, error) {
 
 		return chirps, nil
 	}
+
 }
 
 func (db *DB) DeleteChirp(author_id, chirp_id int) error {
