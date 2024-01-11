@@ -1,6 +1,6 @@
 # Chirpy
 
-Chirpy is a Go project that provides a web API for managing chirps. It utilizes the Chi router and a PostgreSQL database.
+Chirpy is a Go project that provides a web API for managing chirps. It utilizes the Chi router and a simple json file as a database.
 
 ## Table of Contents
 
