@@ -84,7 +84,18 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 
-	chirps, err := cfg.db.GetChirps()
+	author_id := 0
+
+	if len(r.URL.Query().Get("author_id")) > 0 {
+		var err error
+		author_id, err = strconv.Atoi(r.URL.Query().Get("author_id"))
+		if err != nil {
+			RespondWithError(w, 400, "Something went wrong")
+			return
+		}
+	}
+
+	chirps, err := cfg.db.GetChirps(author_id)
 	if err != nil {
 		RespondWithError(w, 400, "Something went wrong")
 		return
