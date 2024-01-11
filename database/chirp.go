@@ -3,11 +3,12 @@ package database
 import "sort"
 
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID       int    `json:"id"`
+	AuthorID int    `json:"author_id"`
+	Body     string `json:"body"`
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body string, author int) (Chirp, error) {
 	dbs, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -27,8 +28,9 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	}
 
 	chirp := Chirp{
-		ID:   id,
-		Body: body,
+		ID:       id,
+		AuthorID: author,
+		Body:     body,
 	}
 
 	dbs.Chirps[id] = chirp

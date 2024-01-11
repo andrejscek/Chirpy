@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func replaceProfanity(msg string) string {
@@ -38,13 +40,39 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, 500, msg)
 		return
 	}
+
+	headers := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(headers) < 2 {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+	token_string := headers[1]
+
+	claims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(token_string, &claims, func(token *jwt.Token) (interface{}, error) { return []byte(cfg.jwtSecret), nil })
+	if err != nil {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+	if !token.Valid || claims.ExpiresAt.Time.Before(time.Now()) || claims.Issuer != "chirpy-access" {
+		RespondWithError(w, 401, "Unauthorized")
+		return
+	}
+
 	if len(chirp.Body) > 140 {
+
 		msg := fmt.Sprintf("Chirp too long: %s", chirp.Body)
 		RespondWithError(w, 400, msg)
 		return
 	}
 
-	resp, err := cfg.db.CreateChirp(replaceProfanity(chirp.Body))
+	author_id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		RespondWithError(w, 400, "Something went wrong")
+		return
+	}
+
+	resp, err := cfg.db.CreateChirp(replaceProfanity(chirp.Body), author_id)
 	if err != nil {
 		RespondWithError(w, 400, "Something went wrong")
 		return
